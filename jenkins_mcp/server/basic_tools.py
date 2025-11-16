@@ -157,3 +157,16 @@ def disable_job(job_name: str) -> str:
     """ 
     client = get_jenkins_client()
     return client.disable_job(job_name)
+
+
+@mcp.tool()
+def stop_build(job_name: str, build_number: int) -> str:
+    """
+    Stop a specific build of a job.
+
+    Args:
+        job_name: The name of the job
+        build_number: The build number to stop
+    """
+    client = get_jenkins_client()
+    return client.stop_build(job_name, build_number)

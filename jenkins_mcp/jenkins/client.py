@@ -109,6 +109,10 @@ class JenkinsClient:
         self.jenkins.disable_job(job_name)
         return f"Successfully disabled job: {job_name}"
 
+    def stop_build(self, job_name: str, build_number: int) -> str:
+        self.jenkins.stop_build(job_name, build_number)
+        return f"Successfully stopped build #{build_number} of job: {job_name}"
+
     def getJenkinsClient():
         return JenkinsClient()
 
