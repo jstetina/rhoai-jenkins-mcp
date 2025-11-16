@@ -1,8 +1,12 @@
 from collections import defaultdict
+import re
 from jenkins_mcp.jenkins.client import JenkinsClient
 from jenkins_mcp.server import mcp
 
-jenkins_client = JenkinsClient.getJenkinsClient()
+
+def get_jenkins_client() -> JenkinsClient:
+    """Get the Jenkins client instance."""
+    return JenkinsClient.getJenkinsClient()
 
 @mcp.tool()
 async def run_test_matrix(rhoai_version: str, build_image_url: str, providers: dict, mode: str = "auto") -> list:
@@ -42,6 +46,7 @@ async def run_test_matrix(rhoai_version: str, build_image_url: str, providers: d
         "FETCH_TEST_MATRIX": fetch,
         "CLOUD_PROVIDERS_TABLE": prov_strs
     }
+    jenkins_client = get_jenkins_client()
     build_info = jenkins_client.jenkins.build_job(job_name, parameters=params)
     return f"Triggered {job_name} for {build_image_url}. Build info: {build_info}"
 
@@ -313,6 +318,7 @@ async def provision_cluster(
     if ods_build_url:
         params["ODS_BUILD_URL"] = ods_build_url
     # Trigger the job
+    jenkins_client = get_jenkins_client()
     build_info = jenkins_client.jenkins.build_job(job_name, parameters=params)
     
     # Wait briefly and get build number
@@ -328,3 +334,63 @@ async def provision_cluster(
         return f"Successfully triggered cluster provisioning for '{cluster_name}'\nJob: {job_name}\nBuild: #{build_number}\nURL: {build_url}\nQueue Item: {build_info}"
     else:
         return f"Triggered cluster provisioning for '{cluster_name}'\nJob: {job_name}\nQueue Item: {build_info}\n(Build number will be assigned when job starts)"
+
+
+@mcp.tool(description="""
+Extract OCP cluster console URLs from Jenkins build logs.
+
+This tool searches through Jenkins build logs to find OpenShift console URLs
+(those containing 'console-openshift-console') and returns a list of unique URLs found.
+
+Args:
+    job_name: The name of the Jenkins job (e.g., 'devops/rhoai-test-flow')
+    build_number: The specific build number to extract URLs from (optional)
+                  If not provided, uses the latest build
+
+Returns:
+    list: A list of unique OpenShift console URLs found in the logs
+          Returns empty list if no URLs are found or if the build doesn't exist
+""")
+async def get_cluster_console_urls(job_name: str, build_number: int = None) -> list:
+    """
+    Extract OCP cluster console URLs from Jenkins build logs.
+    Searches for URLs containing 'console-openshift-console'.
+    """
+    try:
+        jenkins_client = get_jenkins_client()
+        
+        # Get build logs
+        if build_number is None:
+            # Get the last build number
+            job_info = jenkins_client.jenkins.get_job_info(job_name)
+            last_build = job_info.get('lastBuild')
+            if last_build is None:
+                return []
+            build_number = last_build.get('number')
+
+        logs = jenkins_client.jenkins.get_build_console_output(job_name, build_number)
+
+        # Regex pattern to match console URLs
+        # Matches URLs like: https://console-openshift-console.apps.cluster-name.domain.com
+        pattern = r'https?://[^\s<>"]*console-openshift-console[^\s<>"]*'
+
+        # Find all matches
+        matches = re.findall(pattern, logs)
+
+        cleaned_urls = []
+        for url in matches:
+            # Remove everything after the first space, newline, or literal '\n', or 'REDACTED'
+            url = re.split(r'[\s\n]|\\n|REDACTED', url)[0]
+            # Remove common trailing characters that might be captured
+            url = re.sub(r'[\],;:)\.\s]+$', '', url)
+            # Remove ANSI escape codes if present
+            url = re.sub(r'\x1b\[[0-9;]*m', '', url)
+            cleaned_urls.append(url)
+
+        # Return unique URLs, preserving order
+        unique_urls = list(dict.fromkeys([u for u in cleaned_urls if u]))
+
+        return unique_urls
+
+    except Exception as e:
+        return [f"Error extracting console URLs: {str(e)}"]
