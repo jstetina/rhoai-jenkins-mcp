@@ -4,11 +4,7 @@ import os
 import jenkins
 
 # Exclude GA rhoai versions
-EXCLUDE_JOBS = [ ]
-#     "rhoai/2.1",
-#     "rhoai/2.2",
-#     "rhoai/"
-# ]
+EXCLUDE_JOBS = ["rhoai/"]
 class JenkinsClient:
     instance = None
     myattrib = ""
