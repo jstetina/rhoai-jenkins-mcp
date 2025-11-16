@@ -98,6 +98,17 @@ class JenkinsClient:
         # Return the most recent ones (they're already sorted by most recent first)
         return build_numbers[:limit]
 
+    def get_build_info(self, job_name: str, build_number: int):
+        return self.jenkins.get_build_info(job_name, build_number)
+
+    def enable_job(self, job_name: str) -> str:
+        self.jenkins.enable_job(job_name)
+        return f"Successfully enabled job: {job_name}"
+
+    def disable_job(self, job_name: str) -> str:
+        self.jenkins.disable_job(job_name)
+        return f"Successfully disabled job: {job_name}"
+
     def getJenkinsClient():
         return JenkinsClient()
 

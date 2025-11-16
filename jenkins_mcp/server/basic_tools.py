@@ -68,6 +68,23 @@ def test_connection() -> str:
 
 
 @mcp.tool()
+def get_build_info(job_name: str, build_number: int) -> str:
+    """
+    Get the build information for a specific job build.
+
+    Args:
+        job_name: The name of the job
+        build_number: The build number to get information for
+    """
+    client = get_jenkins_client()
+    result = client.get_build_info(job_name, build_number)
+    # Convert dict to string for better readability
+    if isinstance(result, dict):
+        return json.dumps(result, indent=2)
+    return str(result)
+
+
+@mcp.tool()
 def get_build_logs(job_name: str, build_number: int) -> str:
     """
     Get the console output logs for a specific job build.
@@ -112,3 +129,31 @@ def get_recent_build_numbers(job_name: str, limit: int = 10) -> list:
     """
     client = get_jenkins_client()
     return client.get_recent_build_numbers(job_name, limit)
+
+@mcp.tool()
+def enable_job(job_name: str) -> str:
+    """
+    Enable a given job.
+
+    Args:
+        job_name: The name of the job to enable.
+    
+    Returns:
+        str: Status message about the enabled job
+    """
+    client = get_jenkins_client()
+    return client.enable_job(job_name)
+
+@mcp.tool()
+def disable_job(job_name: str) -> str:
+    """
+    Disable a given job.
+
+    Args:
+        job_name: The name of the job to disable.
+    
+    Returns:
+        str: Status message about the disabled job
+    """ 
+    client = get_jenkins_client()
+    return client.disable_job(job_name)
