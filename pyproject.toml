@@ -1,12 +1,12 @@
 [project]
-name = "jenkins-mcp"
+name = "rhoai-jenkins-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for RHOAI Jenkins CI/CD operations"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "jenkinsapi>=0.3.14",
-    "mcp>=1.8.1",
+    "mcp>=1.25.0",
     "python-jenkins",
     "uvicorn>=0.34.2",
     "httpx>=0.27.0",

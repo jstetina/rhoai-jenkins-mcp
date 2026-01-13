@@ -1,26 +1,22 @@
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 import importlib
+import os
 
-# Create all MCP servers
-mcp = FastMCP('rhoai-jenkins')
-mcp_analysis = FastMCP('analysis')
-mcp_job_run_analyser = FastMCP('job-run-analyser')
-mcp_infra_monitoring = FastMCP('infra-monitoring')
-mcp_infra_maintainer = FastMCP('infra-maintainer')
+# Disable DNS rebinding protection for Docker container networking
+transport_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=False
+)
 
-# Import tool definitions
-print(f"Importing Jenkins tools")
+# Configure uvicorn to bind to 0.0.0.0 for container networking
+os.environ.setdefault('UVICORN_HOST', '0.0.0.0')
+os.environ.setdefault('UVICORN_PORT', '8000')
+
+# Create MCP server with security settings
+mcp = FastMCP('rhoai-jenkins', transport_security=transport_security)
+
+# Import all tool definitions for the unified Jenkins MCP server
+print("Importing Jenkins tools")
 importlib.import_module("jenkins_mcp.server.basic_tools")
 importlib.import_module("jenkins_mcp.server.rhoai_tools")
-
-print(f"Importing Analysis tools")
 importlib.import_module("jenkins_mcp.server.analysis_tools")
-
-print(f"Importing Job Run Analyser tools")
-importlib.import_module("jenkins_mcp.server.job_run_analyser_tools")
-
-print(f"Importing Infrastructure Monitoring tools")
-importlib.import_module("jenkins_mcp.server.infra_monitoring_tools")
-
-print(f"Importing Infrastructure Maintainer tools")
-importlib.import_module("jenkins_mcp.server.infra_maintainer_tools")

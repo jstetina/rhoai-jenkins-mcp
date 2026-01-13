@@ -1,6 +1,6 @@
-from . import mcp_analysis
+from . import mcp
 
-@mcp_analysis.tool()
+@mcp.tool()
 def fetch_build_logs(job_name: str, build_number: int = None) -> str:
     """Fetch Jenkins build logs for analysis.
     
@@ -15,7 +15,7 @@ def fetch_build_logs(job_name: str, build_number: int = None) -> str:
     return f"[Dummy] Fetching logs for job '{job_name}' build {build_number or 'latest'}"
 
 
-@mcp_analysis.tool()
+@mcp.tool()
 def get_job_info(job_name: str) -> str:
     """Get information about a Jenkins job.
     
