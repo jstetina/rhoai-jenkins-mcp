@@ -115,6 +115,7 @@ class JenkinsClient:
         self.jenkins.stop_build(job_name, build_number)
         return f"Successfully stopped build #{build_number} of job: {job_name}"
 
+    @staticmethod
     def getJenkinsClient():
         return JenkinsClient()
 

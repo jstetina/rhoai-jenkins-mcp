@@ -4,7 +4,11 @@ from jenkins_mcp.jenkins.client import JenkinsClient
 from jenkins_mcp.server import mcp
 from typing import Dict, Any
 
-jenkins_client = JenkinsClient.getJenkinsClient()
+
+def get_jenkins_client() -> JenkinsClient:
+    """Get the Jenkins client instance."""
+    return JenkinsClient.getJenkinsClient()
+
 
 @mcp.tool()
 async def run_test_matrix(rhoai_version: str, build_image_url: str, providers: dict, team: str, mode: str = "auto") -> list:
@@ -44,5 +48,6 @@ async def run_test_matrix(rhoai_version: str, build_image_url: str, providers: d
         "FETCH_TEST_MATRIX": fetch,
         "CLOUD_PROVIDERS_TABLE": prov_strs
     }
-    build_info = jenkins_client.jenkins.build_job(job_name, parameters=params)
+    client = get_jenkins_client()
+    build_info = client.jenkins.build_job(job_name, parameters=params)
     return f"Triggered {job_name} for {build_image_url}. Build info: {build_info}"
