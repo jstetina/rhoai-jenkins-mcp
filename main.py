@@ -15,6 +15,9 @@ Examples:
 
   # Run with HTTP transport for container networking
   python main.py --transport http --jenkins-url http://localhost:8080 --jenkins-user admin --jenkins-password secret
+
+  # Disable SSL verification (useful for self-signed certificates)
+  python main.py --jenkins-url https://jenkins.example.com --jenkins-user admin --jenkins-password secret --jenkins-ssl-verify false
         """
     )
     parser.add_argument(
@@ -28,12 +31,17 @@ Examples:
     parser.add_argument("--jenkins-url", help="Jenkins Server URL", required=False, dest="jenkins_url")
     parser.add_argument("--jenkins-user", help="Jenkins Server User", required=False, dest="jenkins_user")
     parser.add_argument("--jenkins-password", help="Jenkins Server Password", required=False, dest="jenkins_password")
+    parser.add_argument("--jenkins-ssl-verify", help="Verify SSL certificates (default: true)", required=False, dest="jenkins_ssl_verify", default=None)
     args = parser.parse_args()
 
     # Allow environment variables as fallback
     jenkins_url = args.jenkins_url or os.environ.get("JENKINS_URL")
     jenkins_user = args.jenkins_user or os.environ.get("JENKINS_USER")
     jenkins_password = args.jenkins_password or os.environ.get("JENKINS_PASSWORD")
+    
+    # SSL verify: default to True, can be disabled via --jenkins-ssl-verify=false or JENKINS_SSL_VERIFY=false
+    ssl_verify_str = args.jenkins_ssl_verify or os.environ.get("JENKINS_SSL_VERIFY", "true")
+    jenkins_ssl_verify = ssl_verify_str.lower() not in ("false", "0", "no", "off")
 
     if jenkins_url is None or jenkins_user is None or jenkins_password is None:
         sys.stderr.write("Error: Jenkins Server Parameters are not set\n")
@@ -44,6 +52,7 @@ Examples:
     sys.stderr.write("Starting RHOAI Jenkins MCP Server\n")
     sys.stderr.write(f"Jenkins URL: {jenkins_url}\n")
     sys.stderr.write(f"Jenkins User: {jenkins_user}\n")
+    sys.stderr.write(f"Jenkins SSL Verify: {jenkins_ssl_verify}\n")
     sys.stderr.write(f"Transport: {args.transport}\n")
     sys.stderr.write("\n")
     sys.stderr.flush()
@@ -54,8 +63,8 @@ Examples:
     os.environ["JENKINS_PASSWORD"] = jenkins_password
 
     # Initialize Jenkins client
-    jenkins_client = JenkinsClient(jenkins_url, jenkins_user, jenkins_password)
-
+    jenkins_client = JenkinsClient(jenkins_url, jenkins_user, jenkins_password, ssl_verify=jenkins_ssl_verify)
+    
     # Import the MCP server
     from jenkins_mcp.server import mcp
 

@@ -2,6 +2,7 @@
 import os
 import requests
 from io import BytesIO
+import urllib3
 
 import jenkins
 
@@ -12,14 +13,38 @@ class JenkinsClient:
     myattrib = ""
 
 
-    def __new__(cls, url=None, username=None, password=None):
+    def __new__(cls, url=None, username=None, password=None, ssl_verify=True):
         if not cls.instance:
             cls.instance = super(JenkinsClient, cls).__new__(cls)
             cls.instance.url = url
             cls.instance.username = username
             cls.instance.password = password
-            cls.instance.jenkins = jenkins.Jenkins(url, username, password)
-            print(f"Jenkins Client created for {url}")
+            cls.instance.ssl_verify = ssl_verify
+            
+            # Suppress InsecureRequestWarning if SSL verification is disabled
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            # python-jenkins makes HTTP requests during __init__ (for CSRF crumb),
+            # so we need to patch Session.verify BEFORE creating the Jenkins instance
+            if not ssl_verify:
+                # Temporarily patch requests.Session to disable SSL verification
+                original_init = requests.Session.__init__
+                def patched_init(self, *args, **kwargs):
+                    original_init(self, *args, **kwargs)
+                    self.verify = False
+                requests.Session.__init__ = patched_init
+            
+            try:
+                cls.instance.jenkins = jenkins.Jenkins(url, username, password)
+            finally:
+                # Restore original Session.__init__ to avoid affecting other code
+                if not ssl_verify:
+                    requests.Session.__init__ = original_init
+            
+            # Also ensure verify is set for any future requests
+            cls.instance.jenkins._session.verify = ssl_verify
+            print(f"Jenkins Client created for {url} (ssl_verify={ssl_verify})")
         else:
             print(f"Re-using existant Jenkins Client for {cls.instance.url}")
         return cls.instance
@@ -115,7 +140,6 @@ class JenkinsClient:
         self.jenkins.stop_build(job_name, build_number)
         return f"Successfully stopped build #{build_number} of job: {job_name}"
 
-    @staticmethod
     def getJenkinsClient():
         return JenkinsClient()
 
@@ -152,7 +176,8 @@ class JenkinsClient:
             build_url,
             data=data,
             files=files,
-            auth=(self.username, self.password)
+            auth=(self.username, self.password),
+            verify=self.ssl_verify
         )
         
         if response.status_code == 201:
